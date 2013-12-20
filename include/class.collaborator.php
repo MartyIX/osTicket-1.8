@@ -46,12 +46,11 @@ class Collaborator {
     function __call($name, $args) {
 
         if(!($user=$this->getUser()) || !method_exists($user, $name))
-            return null;
+            return false;
 
-        if($args)
-            return  call_user_func_array(array($user, $name), $args);
-
-        return call_user_func(array($user, $name));
+        return  $args
+            ? call_user_func_array(array($user, $name), $args)
+            : call_user_func(array($user, $name));
     }
 
     function getId() {
@@ -84,6 +83,50 @@ class Collaborator {
 
         return $this->user;
     }
+
+    function getAuthToken($type=1) {
+
+        //Format: // c<id>x<algo id used>h<hash for algo>
+        $authcode = '';
+        switch($type) {
+            case 1:
+                $authcode = sprintf('c%dx%dh%s',
+                    $this->getId(),
+                    1,
+                    substr(md5($this->getId().$this->getUserId().$this->getTicketId().SECRET_SALT),
+                        16));
+                break;
+        }
+
+        return $authcode;
+    }
+
+    function asVar() {
+       return (string) $this->getName();
+    }
+
+    function getVar($tag) {
+        global $cfg;
+
+        if ($tag && is_callable(array($this, 'get'.ucfirst($tag)))) {
+            $rv=call_user_func(array($this, 'get'.ucfirst($tag)));
+            if($rv !==false)
+                return $rv;
+        }
+
+        switch (strtolower($tag)) {
+            case 'auth_token':
+                return $this->getAuthToken();
+                break;
+            case 'ticket_link':
+                return sprintf('%s/view.php?auth=%s',
+                        $cfg->getBaseUrl(), $this->getAuthToken());
+                break;
+        }
+
+        return false;
+    }
+
 
     static function add($info, &$errors) {
 
