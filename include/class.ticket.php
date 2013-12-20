@@ -964,7 +964,9 @@ class Ticket {
             $options['references'] = $vars['references'];
 
         foreach($collaborators as $collaborator) {
-            $msg = $this->replaceVars($msg, array('recipient' => $collaborator));
+            $msg = $this->replaceVars($msg,
+                    array('collaborator' => $collaborator,
+                          'recipient' => $collaborator)); //Remove it after patching existing installs
             $email->send($collaborator->getEmail(), $msg['subj'], $msg['body'], $attachments,
                 $options);
         }
